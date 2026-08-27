@@ -21,10 +21,10 @@ def generate_synthetic_data(num_orders=10000):
     customer_ids = list(customer_profiles.keys())
     
     categories = ['Fashion', 'Footwear', 'Electronics', 'Home', 'Beauty']
-    cat_risk_mult = {'Fashion': 1.5, 'Footwear': 1.6, 'Electronics': 0.4, 'Home': 0.6, 'Beauty': 0.5}
+    cat_risk_mult = {'Fashion': 1.3, 'Footwear': 1.4, 'Electronics': 0.6, 'Home': 0.7, 'Beauty': 0.6}
     
     pincode_tiers = ['Tier_1', 'Tier_2', 'Tier_3']
-    pin_rto_mult = {'Tier_1': 0.7, 'Tier_2': 1.1, 'Tier_3': 1.8}
+    pin_rto_mult = {'Tier_1': 0.8, 'Tier_2': 1.1, 'Tier_3': 1.5}
     
     data = []
     start_date = datetime(2023, 1, 1)
@@ -52,7 +52,7 @@ def generate_synthetic_data(num_orders=10000):
         if payment_method == 'COD':
             rto_logit += 1.5
         rto_logit += (pin_rto_mult[pincode] - 1.0) * 1.2
-        rto_logit += np.random.normal(0, 1.0) # Noise
+        rto_logit += np.random.normal(0, 1.3) # Noise increased
         
         rto_prob = 1 / (1 + np.exp(-rto_logit))
         is_rto = np.random.rand() < rto_prob
@@ -65,7 +65,7 @@ def generate_synthetic_data(num_orders=10000):
             ret_logit += c_prof['base_return_risk'] * 2.5
             ret_logit += (cat_risk_mult[category] - 1.0) * 1.5
             ret_logit += (val_risk_mult - 1.0) * 0.8
-            ret_logit += np.random.normal(0, 1.2) # Noise
+            ret_logit += np.random.normal(0, 1.5) # Noise increased
             
             return_prob = 1 / (1 + np.exp(-ret_logit))
             is_return = np.random.rand() < return_prob
