@@ -1,0 +1,9 @@
+pandas==2.2.2
+scikit-learn==1.5.1
+lightgbm==4.5.0
+matplotlib==3.9.2
+seaborn==0.13.2
+streamlit==1.37.1
+pytest==8.3.2
+google-genai==0.3.0
+jupyter==1.1.1
