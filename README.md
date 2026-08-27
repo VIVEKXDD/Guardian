@@ -25,4 +25,4 @@ TBD
 
 ## Known Limitations
 
-TBD
+- **Synthetic Data Evaluation:** The dataset used in this project is fully synthetic, calibrated to a small number of published Indian e-commerce statistics (e.g., 25-40% fashion return rate, 20-40% COD RTO rate). Because no public dataset adequately captures COD and pincode-based RTO dynamics, we generated this data probabilistically. Consequently, the precision/recall numbers reflect how well our model learns these simulated patterns, and should not be taken as proof of exact real-world predictive performance.

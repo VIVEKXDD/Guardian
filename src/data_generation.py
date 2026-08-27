@@ -9,83 +9,72 @@ np.random.seed(42)
 random.seed(42)
 
 def generate_synthetic_data(num_orders=10000):
-    """
-    Generates a synthetic e-commerce dataset calibrated to Indian market statistics:
-    - 25-40% return rate for fashion
-    - 20-40% COD RTO rate
-    """
-    print(f"Generating {num_orders} synthetic orders...")
+    print(f"Generating {num_orders} synthetic orders with probabilistic noise...")
     
-    # Base data
-    customer_ids = [f"CUST_{i:05d}" for i in range(1, int(num_orders * 0.6))] # Some repeat customers
+    num_customers = int(num_orders * 0.6)
+    customer_profiles = {
+        f"CUST_{i:05d}": {
+            'base_rto_risk': np.clip(np.random.normal(0.1, 0.2), 0, 0.8),
+            'base_return_risk': np.clip(np.random.normal(0.15, 0.25), 0, 0.9)
+        } for i in range(1, num_customers + 1)
+    }
+    customer_ids = list(customer_profiles.keys())
+    
     categories = ['Fashion', 'Footwear', 'Electronics', 'Home', 'Beauty']
+    cat_risk_mult = {'Fashion': 1.5, 'Footwear': 1.6, 'Electronics': 0.4, 'Home': 0.6, 'Beauty': 0.5}
+    
     pincode_tiers = ['Tier_1', 'Tier_2', 'Tier_3']
+    pin_rto_mult = {'Tier_1': 0.7, 'Tier_2': 1.1, 'Tier_3': 1.8}
     
     data = []
-    
-    # Generate temporal base
     start_date = datetime(2023, 1, 1)
     
     for i in range(num_orders):
-        # Order timestamp
         order_date = start_date + timedelta(days=np.random.randint(0, 365), hours=np.random.randint(0, 24))
-        
-        # Customer
         customer = random.choice(customer_ids)
+        c_prof = customer_profiles[customer]
         
-        # Product Category
-        category = np.random.choice(categories, p=[0.4, 0.2, 0.15, 0.15, 0.1]) # Fashion heavy
-        
-        # Payment Method
-        payment_method = np.random.choice(['COD', 'Prepaid'], p=[0.65, 0.35]) # India is COD heavy
-        
-        # Pincode Tier
+        category = np.random.choice(categories, p=[0.4, 0.2, 0.15, 0.15, 0.1])
+        payment_method = np.random.choice(['COD', 'Prepaid'], p=[0.65, 0.35])
         pincode = np.random.choice(pincode_tiers, p=[0.3, 0.4, 0.3])
         
-        # Order Value & Discount
         order_value = np.random.exponential(scale=1500) + 300
+        val_risk_mult = 1.2 if order_value > 5000 else 1.0
+        
         discount_percent = np.random.uniform(0, 50)
-        if order_date.month in [10, 11]: # Festive season proxy
+        if order_date.month in [10, 11]:
             discount_percent += np.random.uniform(10, 20)
-            
-        discount_percent = min(discount_percent, 80) # Cap at 80%
+        discount_percent = min(discount_percent, 80)
         
-        # --- Injecting Fraud / Return Logic ---
-        
-        # Base RTO logic for COD
-        rto_prob = 0.02
+        # Probabilistic RTO Calculation
+        rto_logit = -2.0
+        rto_logit += c_prof['base_rto_risk'] * 2.0
         if payment_method == 'COD':
-            if pincode == 'Tier_3':
-                rto_prob = 0.35
-            elif pincode == 'Tier_2':
-                rto_prob = 0.25
-            else:
-                rto_prob = 0.15
+            rto_logit += 1.5
+        rto_logit += (pin_rto_mult[pincode] - 1.0) * 1.2
+        rto_logit += np.random.normal(0, 1.0) # Noise
         
-        # Base Return logic (Post-delivery)
-        return_prob = 0.05
-        if category in ['Fashion', 'Footwear']:
-            return_prob = 0.35
-            
-        # Is this an RTO? (Return to origin before delivery)
+        rto_prob = 1 / (1 + np.exp(-rto_logit))
         is_rto = np.random.rand() < rto_prob
         
-        # Is this a Return? (Customer returns after delivery)
-        # Cannot be a return if it's already an RTO
+        # Probabilistic Return Calculation
         is_return = False
         return_reason = None
         if not is_rto:
+            ret_logit = -1.5
+            ret_logit += c_prof['base_return_risk'] * 2.5
+            ret_logit += (cat_risk_mult[category] - 1.0) * 1.5
+            ret_logit += (val_risk_mult - 1.0) * 0.8
+            ret_logit += np.random.normal(0, 1.2) # Noise
+            
+            return_prob = 1 / (1 + np.exp(-ret_logit))
             is_return = np.random.rand() < return_prob
+            
             if is_return:
                 reasons = ['Wrong Size', 'Changed Mind', 'Defective', 'Not as Expected']
                 return_reason = np.random.choice(reasons, p=[0.4, 0.3, 0.1, 0.2])
                 
-        # Outcome
-        outcome = 'Delivered'
-        if is_rto:
-            outcome = 'RTO'
-        elif is_return:
-            outcome = 'Returned'
+        outcome = 'RTO' if is_rto else ('Returned' if is_return else 'Delivered')
             
         data.append({
             'order_id': f"ORD_{i:07d}",
@@ -103,28 +92,35 @@ def generate_synthetic_data(num_orders=10000):
         })
         
     df = pd.DataFrame(data)
-    
-    # Calculate historical features (simulate what we know AT order placement time)
-    # We must sort by time to prevent leakage
     df = df.sort_values('order_date').reset_index(drop=True)
-    
-    # Create target variable: 1 if RTO or Return, 0 otherwise
     df['is_bad_order'] = df['is_rto'] | df['is_return']
     
-    # Save the raw dataset
     os.makedirs('data', exist_ok=True)
     df.to_csv('data/synthetic_orders.csv', index=False)
-    print("Dataset generated and saved to data/synthetic_orders.csv")
     
-    # Print calibration stats
     print("\n--- Calibration Check ---")
-    print(f"Overall COD rate: {(df['payment_method'] == 'COD').mean():.1%}")
-    cod_rto = df[df['payment_method'] == 'COD']['is_rto'].mean()
-    print(f"COD RTO rate: {cod_rto:.1%} (Target: 20-40%)")
+    cod_orders = df[df['payment_method'] == 'COD']
+    print(f"Overall COD rate: {len(cod_orders)/len(df):.1%}")
+    print(f"COD RTO rate: {cod_orders['is_rto'].mean():.1%} (Target: 20-40%)")
     
     fashion = df[df['category'].isin(['Fashion', 'Footwear'])]
     fashion_ret = fashion[fashion['is_rto'] == 0]['is_return'].mean()
     print(f"Fashion Return rate (post-delivery): {fashion_ret:.1%} (Target: 25-40%)")
+    
+    print("\n--- Feature Correlation Sanity Check ---")
+    check_df = df.copy()
+    check_df['payment_COD'] = (check_df['payment_method'] == 'COD').astype(int)
+    check_df['pincode_encoded'] = check_df['pincode_tier'].map({'Tier_1': 1, 'Tier_2': 2, 'Tier_3': 3})
+    check_df['category_encoded'] = check_df['category'].astype('category').cat.codes
+    
+    cols_to_check = ['payment_COD', 'pincode_encoded', 'category_encoded', 'order_value', 'discount_percent']
+    corrs = check_df[cols_to_check].corrwith(check_df['is_bad_order']).abs().sort_values(ascending=False)
+    
+    print("Absolute Pearson Correlation with 'is_bad_order':")
+    for col, val in corrs.items():
+        print(f"{col:<18}: {val:.3f}")
+        if val > 0.8:
+            print(f"  WARNING: {col} has dangerously high correlation (>0.8).")
 
 if __name__ == "__main__":
     generate_synthetic_data()
