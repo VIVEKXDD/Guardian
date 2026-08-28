@@ -12,3 +12,6 @@ We use a **synthetic dataset** generated specifically for this project, calibrat
 
 ## Train / Validation / Test Split
 - **Strategy:** The data will be split temporally (or by customer ID) to prevent data leakage. We will **never** perform a random row-level split, as this would leak a customer's future behavior into the training set, artificially inflating model performance.
+
+---
+> **Note:** As of the `data-v1-final` commit, this is the frozen dataset version all Stage 1 modeling is built on. Regenerating after this point requires re-running the full leakage/interaction/split checks.
