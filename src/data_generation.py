@@ -47,7 +47,7 @@ def generate_synthetic_data(num_orders=10000):
         discount_percent = min(discount_percent, 80)
         
         # Probabilistic RTO Calculation
-        rto_logit = -2.0
+        rto_logit = -3.5
         rto_logit += c_prof['base_rto_risk'] * 2.0
         if payment_method == 'COD':
             rto_logit += 1.5
@@ -61,7 +61,7 @@ def generate_synthetic_data(num_orders=10000):
         is_return = False
         return_reason = None
         if not is_rto:
-            ret_logit = -1.5
+            ret_logit = -2.7
             ret_logit += c_prof['base_return_risk'] * 2.5
             ret_logit += (cat_risk_mult[category] - 1.0) * 1.5
             ret_logit += (val_risk_mult - 1.0) * 0.8

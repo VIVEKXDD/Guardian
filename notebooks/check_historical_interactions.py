@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-df = pd.read_csv('../data/features.csv')
+df = pd.read_csv('data/features.csv')
 
 print("--- Correlation of Historical Features with is_bad_order ---")
 # Discretize historical features to see if any bucket becomes deterministic
