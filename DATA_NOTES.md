@@ -6,6 +6,7 @@ This document describes the data strategy for Guardian.
 We use a **synthetic dataset** generated specifically for this project, calibrated to mirror published statistics of the Indian e-commerce landscape.
 
 ## Calibration Statistics
+- **Order Volume Mix:** The 65% COD / 35% Prepaid and 40% Fashion volume splits are reasonable structural assumptions based on general Indian e-commerce market reports (e.g., RedSeer/Bain), not a strict extraction from a single cited whitepaper.
 - **Overall Fashion Return Rate:** Calibrated to roughly 25-40%.
 - **COD RTO Rate:** Calibrated to roughly 20-40%, dependent on geographic features (pincode tier).
 - **Fraud/Abuse Patterns:** Injected specific patterns where certain customer IDs exhibit unusually high return rates or conflicting return reasons.
