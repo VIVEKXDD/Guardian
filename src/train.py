@@ -26,8 +26,11 @@ if __name__ == "__main__":
     params = {
         'objective': 'binary',
         'metric': 'auc',
-        'learning_rate': 0.05,
-        'num_leaves': 31,
+        'learning_rate': 0.01,
+        'num_leaves': 15,
+        'max_depth': 5,
+        'min_child_samples': 40,
+        'is_unbalance': True, # Address the 33% base rate
         'random_state': 42
     }
     
@@ -35,9 +38,9 @@ if __name__ == "__main__":
     bst = lgb.train(
         params,
         train_data,
-        num_boost_round=500,
+        num_boost_round=1500,
         valid_sets=[train_data, val_data],
-        callbacks=[lgb.early_stopping(stopping_rounds=20), lgb.log_evaluation(50)]
+        callbacks=[lgb.early_stopping(stopping_rounds=100), lgb.log_evaluation(10)]
     )
     
     os.makedirs('models', exist_ok=True)

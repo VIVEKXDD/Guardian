@@ -1,17 +1,9 @@
---- Baseline (Rule-Based) ---
-Precision: 0.4566
-Recall: 0.3035
-F1-Score: 0.3646
-TP: 200
-FP: 238
-FN: 459
-TN: 1103
-
---- LightGBM (Stage 1) - Threshold: 0.30 ---
-Precision: 0.3465
-Recall: 0.9196
-F1-Score: 0.5033
-TP: 606
-FP: 1143
-FN: 53
-TN: 198
+--- LightGBM (Stage 1) - Threshold: 0.3119 ---
+PR-AUC: 0.4147
+Precision: 0.3468
+Recall: 0.9484
+F1-Score: 0.5079
+TP: 625
+FP: 1177
+FN: 34
+TN: 164

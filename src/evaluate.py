@@ -31,22 +31,37 @@ if __name__ == "__main__":
         test[c] = test[c].astype('category')
         
     bst = lgb.Booster(model_file='models/stage1_lgbm.txt')
-    
-    # LGBM Predictions
     test['lgbm_prob'] = bst.predict(test[features])
     
-    # Baseline Predictions
-    from baseline import rule_based_predict
-    test['baseline_pred'] = rule_based_predict(test)
+    probs = test['lgbm_prob']
+    print("\n--- Probability Stats ---")
+    print(f"Min: {probs.min():.4f}, Max: {probs.max():.4f}, Mean: {probs.mean():.4f}")
+    print(f"10th: {np.percentile(probs, 10):.4f}, 50th: {np.percentile(probs, 50):.4f}, 90th: {np.percentile(probs, 90):.4f}")
     
-    # Evaluate
-    baseline_metrics = calc_metrics(test['is_bad_order'], test['baseline_pred'], threshold=0.5)
+    # 2. PR-AUC Calculation
+    def calc_pr_auc(y_true, y_pred_prob):
+        order = np.argsort(y_pred_prob)[::-1]
+        y_true_sorted = y_true.iloc[order].values
+        tp_cumsum = np.cumsum(y_true_sorted == 1)
+        fp_cumsum = np.cumsum(y_true_sorted == 0)
+        precisions = tp_cumsum / (tp_cumsum + fp_cumsum)
+        recalls = tp_cumsum / np.sum(y_true == 1)
+        precisions = np.concatenate([[1.0], precisions])
+        recalls = np.concatenate([[0.0], recalls])
+        return np.trapezoid(precisions, recalls)
+
+    pr_auc = calc_pr_auc(test['is_bad_order'], test['lgbm_prob'])
+    base_rate = test['is_bad_order'].mean()
+    print(f"\nPR-AUC: {pr_auc:.4f} (Baseline: {base_rate:.4f})")
     
-    # Optimize threshold for LGBM based on F1 (roughly)
+    # Optimize threshold for LGBM based on F1
     best_f1 = 0
     best_thresh = 0.5
-    for t in np.arange(0.2, 0.8, 0.05):
-        met = calc_metrics(test['is_bad_order'], test['lgbm_prob'], threshold=t)
+    print("\n--- Threshold Sweep ---")
+    thresholds = np.linspace(probs.min(), probs.max(), 10)
+    for t in thresholds:
+        met = calc_metrics(test['is_bad_order'], probs, threshold=t)
+        print(f"Thresh: {t:.4f} | Prec: {met['Precision']:.4f} | Rec: {met['Recall']:.4f} | F1: {met['F1-Score']:.4f}")
         if met['F1-Score'] > best_f1:
             best_f1 = met['F1-Score']
             best_thresh = t
@@ -55,15 +70,13 @@ if __name__ == "__main__":
     
     os.makedirs('docs', exist_ok=True)
     with open('docs/metrics.txt', 'w') as f:
-        f.write("--- Baseline (Rule-Based) ---\n")
-        for k, v in baseline_metrics.items():
-            f.write(f"{k}: {v:.4f}\n" if isinstance(v, float) else f"{k}: {v}\n")
-            
-        f.write(f"\n--- LightGBM (Stage 1) - Threshold: {best_thresh:.2f} ---\n")
+        f.write(f"--- LightGBM (Stage 1) - Threshold: {best_thresh:.4f} ---\n")
+        f.write(f"PR-AUC: {pr_auc:.4f}\n")
         for k, v in lgbm_metrics.items():
             f.write(f"{k}: {v:.4f}\n" if isinstance(v, float) else f"{k}: {v}\n")
             
-    print("Metrics evaluated and saved to docs/metrics.txt")
+    print("\nMetrics evaluated and saved to docs/metrics.txt")
+
     
     # Feature importance
     lgb.plot_importance(bst, max_num_features=10, importance_type='gain')
