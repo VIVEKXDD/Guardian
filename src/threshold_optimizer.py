@@ -22,42 +22,52 @@ def compute_metrics(y_true, probs, threshold):
     }
 
 if __name__ == "__main__":
+    val = pd.read_csv('data/val.csv')
     test = pd.read_csv('data/test.csv')
     
     features = ['payment_method', 'pincode_tier', 'category', 'order_value', 'discount_percent', 'past_order_count', 'past_return_count', 'past_rto_count', 'past_return_rate', 'past_rto_rate']
     cat_features = ['payment_method', 'pincode_tier', 'category']
     for c in cat_features:
+        val[c] = val[c].astype('category')
         test[c] = test[c].astype('category')
         
     bst = lgb.Booster(model_file='models/stage1_lgbm.txt')
-    probs = bst.predict(test[features])
-    y_true = test['is_bad_order']
     
-    thresholds = np.linspace(probs.min(), probs.max(), 500)
-    results = [compute_metrics(y_true, probs, t) for t in thresholds]
-    res_df = pd.DataFrame(results)
+    val_probs = bst.predict(val[features])
+    val_true = val['is_bad_order']
     
-    # Constrained Optimization: Maximize recall for a given budget
+    test_probs = bst.predict(test[features])
+    test_true = test['is_bad_order']
+    
+    thresholds = np.linspace(val_probs.min(), val_probs.max(), 500)
+    val_results = [compute_metrics(val_true, val_probs, t) for t in thresholds]
+    res_df = pd.DataFrame(val_results)
+    
     budgets = [0.10, 0.20, 0.30]
-    print("--- Constrained Threshold Optimization (Capacity Budgeting) ---")
+    print("--- Constrained Threshold Optimization (Picked on Val, Applied to Test) ---")
     
     best_thresh_20 = None
     
     for b in budgets:
         valid = res_df[res_df['flag_rate'] <= b]
         if not valid.empty:
-            best = valid.loc[valid['recall'].idxmax()]
+            best_val = valid.loc[valid['recall'].idxmax()]
         else:
-            best = res_df.loc[(res_df['flag_rate'] - b).abs().idxmin()]
+            best_val = res_df.loc[(res_df['flag_rate'] - b).abs().idxmin()]
             
+        opt_thresh = best_val['threshold']
+        
+        # Apply exactly this threshold to TEST
+        test_met = compute_metrics(test_true, test_probs, opt_thresh)
+        
         print(f"Budget: {b*100:.0f}% of Volume")
-        print(f"  Threshold: {best['threshold']:.4f}")
-        print(f"  Actual Flag Rate: {best['flag_rate']*100:.2f}%")
-        print(f"  Recall (Fraud Caught): {best['recall']*100:.2f}%")
-        print(f"  TP: {best['tp']}, FP: {best['fp']}, FN: {best['fn']}")
+        print(f"  Threshold (from Val): {opt_thresh:.4f}")
+        print(f"  Test Flag Rate: {test_met['flag_rate']*100:.2f}%")
+        print(f"  Test Recall (Fraud Caught): {test_met['recall']*100:.2f}%")
+        print(f"  Test TP: {test_met['tp']}, FP: {test_met['fp']}, FN: {test_met['fn']}")
         
         if b == 0.20:
-            best_thresh_20 = best['threshold']
+            best_thresh_20 = opt_thresh
             
     # Save the selected threshold for the 20% budget
     os.makedirs('models', exist_ok=True)

@@ -1,8 +1,22 @@
 import json
+import os
+import time
+import pandas as pd
+import numpy as np
+
+try:
+    from google import genai
+    from google.genai import types
+except ImportError:
+    genai = None
 
 class LLMTriageAgent:
-    def __init__(self, use_mock=True):
+    def __init__(self, use_mock=False):
         self.use_mock = use_mock
+        if not use_mock:
+            if genai is None:
+                raise ImportError("google-genai is not installed.")
+            self.client = genai.Client()
         
     def _generate_prompt(self, order_series):
         """Constructs the prompt for the LLM."""
@@ -26,6 +40,11 @@ Based on the customer's historical patterns and current order traits, output a J
 1. "reasoning": A brief explanation of your decision.
 2. "decision": One of ["ALLOW", "VERIFY_MANUALLY", "RESTRICT_COD"]
 
+RULES:
+- If return rate or RTO rate is very high (> 50%) and payment is COD, use RESTRICT_COD.
+- If return rate is moderate (e.g., 30-50%), use VERIFY_MANUALLY.
+- If history is mostly clean or no history, use ALLOW.
+
 JSON Response:
 """
 
@@ -33,44 +52,40 @@ JSON Response:
         prompt = self._generate_prompt(order_series)
         
         if self.use_mock:
-            # Simple mock heuristic based on the data
-            if order_series['past_return_rate'] > 0.6 and order_series['payment_method'] == 'COD':
-                return {
-                    "reasoning": "High historical return rate combined with COD payment. High risk of RTO.",
-                    "decision": "RESTRICT_COD"
-                }
-            elif order_series['past_return_rate'] > 0.4:
-                return {
-                    "reasoning": "Moderate historical return rate. Requires manual verification.",
-                    "decision": "VERIFY_MANUALLY"
-                }
-            else:
-                return {
-                    "reasoning": "Order flagged by Stage 1, but historical context looks acceptable.",
-                    "decision": "ALLOW"
-                }
+            return {"decision": "ALLOW", "reasoning": "Mock fallback"}
         else:
-            # Here we would integrate with an actual LLM API
-            raise NotImplementedError("Real LLM integration not yet implemented. Use use_mock=True.")
+            try:
+                response = self.client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.0
+                    ),
+                )
+                return json.loads(response.text)
+            except Exception as e:
+                return {"reasoning": f"LLM Call Failed: {str(e)}", "decision": "ERROR"}
 
 if __name__ == "__main__":
-    import pandas as pd
-    import numpy as np
     test = pd.read_csv('data/test.csv')
     
-    agent = LLMTriageAgent(use_mock=True)
+    if "GEMINI_API_KEY" not in os.environ:
+        print("WARNING: GEMINI_API_KEY not found in environment. Please export GEMINI_API_KEY to run the real LLM.")
+        exit(1)
+        
+    agent = LLMTriageAgent(use_mock=False)
     
-    # Test on a realistic sample set
-    print("--- Testing Stage 2 LLM Agent (Mock) on 20 Samples ---")
-    
-    # Pick 20 samples representing a mix of safe and risky orders
+    print("--- Testing Stage 2 LLM Agent (Gemini) on 20 Samples ---")
     np.random.seed(42)
     sample_indices = np.random.choice(test.index, 20, replace=False)
     
     for i, idx in enumerate(sample_indices):
         order = test.loc[idx]
-        res = agent.triage_order(order)
         print(f"\n[Sample {i+1}] Order ID {order['order_id']}")
-        print(f"Features: Prev Returns: {order['past_return_count']} | Prev RTOs: {order['past_rto_count']} | {order['payment_method']} | {order['category']}")
-        print(f"Decision: {res['decision']}")
-        print(f"Reasoning: {res['reasoning']}")
+        print(f"Features: Prev Returns: {order['past_return_count']}/{order['past_order_count']} | Prev RTOs: {order['past_rto_count']}/{order['past_order_count']} | {order['payment_method']} | {order['category']}")
+        
+        res = agent.triage_order(order)
+        print(f"Decision: {res.get('decision', 'ERROR')}")
+        print(f"Reasoning: {res.get('reasoning', 'ERROR')}")
+        time.sleep(2)
