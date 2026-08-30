@@ -55,24 +55,22 @@ JSON Response:
 
 if __name__ == "__main__":
     import pandas as pd
+    import numpy as np
     test = pd.read_csv('data/test.csv')
     
     agent = LLMTriageAgent(use_mock=True)
     
-    # Test on a few edge cases
-    print("--- Testing Stage 2 LLM Agent (Mock) ---")
+    # Test on a realistic sample set
+    print("--- Testing Stage 2 LLM Agent (Mock) on 20 Samples ---")
     
-    # Edge Case 1: High risk
-    idx_high = test[(test['past_return_rate'] > 0.6) & (test['payment_method'] == 'COD')].index[0]
-    res1 = agent.triage_order(test.loc[idx_high])
-    print("\nCase 1 (High Risk):", res1)
+    # Pick 20 samples representing a mix of safe and risky orders
+    np.random.seed(42)
+    sample_indices = np.random.choice(test.index, 20, replace=False)
     
-    # Edge Case 2: Moderate risk
-    idx_mod = test[(test['past_return_rate'] > 0.4) & (test['past_return_rate'] <= 0.6)].index[0]
-    res2 = agent.triage_order(test.loc[idx_mod])
-    print("\nCase 2 (Moderate Risk):", res2)
-    
-    # Edge Case 3: Flagged but safe (false positive)
-    idx_safe = test[(test['past_return_rate'] == 0) & (test['payment_method'] == 'Prepaid')].index[0]
-    res3 = agent.triage_order(test.loc[idx_safe])
-    print("\nCase 3 (Safe / False Positive):", res3)
+    for i, idx in enumerate(sample_indices):
+        order = test.loc[idx]
+        res = agent.triage_order(order)
+        print(f"\n[Sample {i+1}] Order ID {order['order_id']}")
+        print(f"Features: Prev Returns: {order['past_return_count']} | Prev RTOs: {order['past_rto_count']} | {order['payment_method']} | {order['category']}")
+        print(f"Decision: {res['decision']}")
+        print(f"Reasoning: {res['reasoning']}")

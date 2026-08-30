@@ -3,7 +3,7 @@ import numpy as np
 import lightgbm as lgb
 import os
 
-def compute_cost(y_true, probs, threshold, cost_fn, cost_fp):
+def compute_metrics(y_true, probs, threshold):
     y_pred = (probs > threshold).astype(int)
     
     tp = np.sum((y_true == 1) & (y_pred == 1))
@@ -11,15 +11,13 @@ def compute_cost(y_true, probs, threshold, cost_fn, cost_fp):
     fn = np.sum((y_true == 1) & (y_pred == 0))
     tn = np.sum((y_true == 0) & (y_pred == 0))
     
-    total_cost = (fn * cost_fn) + (fp * cost_fp)
     flag_rate = (tp + fp) / len(y_true)
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
     
     return {
         'threshold': threshold,
-        'total_cost': total_cost,
-        'fn_cost': fn * cost_fn,
-        'fp_cost': fp * cost_fp,
         'flag_rate': flag_rate,
+        'recall': recall,
         'tp': tp, 'fp': fp, 'fn': fn, 'tn': tn
     }
 
@@ -35,26 +33,33 @@ if __name__ == "__main__":
     probs = bst.predict(test[features])
     y_true = test['is_bad_order']
     
-    COST_FN = 100
-    COST_FP = 5
-    
-    thresholds = np.linspace(probs.min(), probs.max(), 100)
-    results = []
-    for t in thresholds:
-        results.append(compute_cost(y_true, probs, t, COST_FN, COST_FP))
-        
+    thresholds = np.linspace(probs.min(), probs.max(), 500)
+    results = [compute_metrics(y_true, probs, t) for t in thresholds]
     res_df = pd.DataFrame(results)
-    best = res_df.loc[res_df['total_cost'].idxmin()]
     
-    print("--- Cost-Based Threshold Optimization ---")
-    print(f"Cost of FN (Missed Fraud): {COST_FN}")
-    print(f"Cost of FP (Stage 2 Review): {COST_FP}")
-    print(f"\nOptimal Threshold: {best['threshold']:.4f}")
-    print(f"Total Expected Cost: {best['total_cost']}")
-    print(f"Flag Rate: {best['flag_rate']*100:.2f}% of orders sent to Stage 2")
-    print(f"TP: {best['tp']}, FP: {best['fp']}, FN: {best['fn']}, TN: {best['tn']}")
+    # Constrained Optimization: Maximize recall for a given budget
+    budgets = [0.10, 0.20, 0.30]
+    print("--- Constrained Threshold Optimization (Capacity Budgeting) ---")
     
-    # Save the selected threshold
+    best_thresh_20 = None
+    
+    for b in budgets:
+        valid = res_df[res_df['flag_rate'] <= b]
+        if not valid.empty:
+            best = valid.loc[valid['recall'].idxmax()]
+        else:
+            best = res_df.loc[(res_df['flag_rate'] - b).abs().idxmin()]
+            
+        print(f"Budget: {b*100:.0f}% of Volume")
+        print(f"  Threshold: {best['threshold']:.4f}")
+        print(f"  Actual Flag Rate: {best['flag_rate']*100:.2f}%")
+        print(f"  Recall (Fraud Caught): {best['recall']*100:.2f}%")
+        print(f"  TP: {best['tp']}, FP: {best['fp']}, FN: {best['fn']}")
+        
+        if b == 0.20:
+            best_thresh_20 = best['threshold']
+            
+    # Save the selected threshold for the 20% budget
     os.makedirs('models', exist_ok=True)
     with open('models/optimal_threshold.txt', 'w') as f:
-        f.write(str(best['threshold']))
+        f.write(str(best_thresh_20))
