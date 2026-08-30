@@ -68,6 +68,9 @@ JSON Response:
                 return {"reasoning": f"LLM Call Failed: {str(e)}", "decision": "ERROR"}
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv()
+    
     test = pd.read_csv('data/test.csv')
     
     if "GEMINI_API_KEY" not in os.environ:
