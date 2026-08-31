@@ -56,3 +56,48 @@
 - Features: Prev Returns: 0.0/1 | Prev RTOs: 1.0/1 | Prepaid | Footwear
 - Decision: ALLOW
 - Reasoning: The customer has a 100% RTO rate from a single past order, but the current order is fully Prepaid, which mitigates non-delivery payment risk. Therefore, the order can proceed.
+
+**[Sample 12] Order ID ORD_0007120**
+- Features: Prev Returns: 1.0/2 | Prev RTOs: 0.0/2 | COD | Home
+- Decision: VERIFY_MANUALLY
+- Reasoning: The customer has a moderate return rate of 50% (1 out of 2 past orders returned) and has chosen Cash on Delivery (COD) for this order. Based on the rules, a moderate return rate warrants manual verification.
+
+**[Sample 13] Order ID ORD_0005478**
+- Features: Prev Returns: 0.0/3 | Prev RTOs: 1.0/3 | Prepaid | Footwear
+- Decision: ALLOW
+- Reasoning: The order is Prepaid and located in a Tier 1 pincode. The customer's return rate is 0% and while there is a single past RTO out of 3 orders (33%), the prepaid status minimizes risk.
+
+**[Sample 14] Order ID ORD_0005721**
+- Features: Prev Returns: 0.0/1 | Prev RTOs: 1.0/1 | COD | Footwear
+- Decision: RESTRICT_COD
+- Reasoning: The customer has a 100% RTO rate from their previous order history, and the current order is placed via Cash on Delivery (COD). Per the risk policy, a high RTO rate (>50%) on COD orders warrants restricting COD payment.
+
+**[Sample 15] Order ID ORD_0004049**
+- Features: Prev Returns: 3.0/4 | Prev RTOs: 0.0/4 | COD | Footwear
+- Decision: RESTRICT_COD
+- Reasoning: The customer has a return rate of 75% (3 out of 4 past orders), which exceeds the 50% threshold, combined with Cash on Delivery (COD) as the payment method.
+
+**[Sample 16] Order ID ORD_0003527**
+- Features: Prev Returns: 1.0/3 | Prev RTOs: 1.0/3 | Prepaid | Fashion
+- Decision: VERIFY_MANUALLY
+- Reasoning: The customer has a moderate return rate of 33.33% (1 return out of 3 past orders) and an RTO rate of 33.33%. Based on the rules, a moderate return rate (30-50%) requires manual verification.
+
+**[Sample 17] Order ID ORD_0004410**
+- Features: Prev Returns: 0.0/0 | Prev RTOs: 0.0/0 | Prepaid | Home
+- Decision: ALLOW
+- Reasoning: The customer has no past order history, and the order payment method is Prepaid, posing minimal risk to the platform.
+
+**[Sample 18] Order ID ORD_0007872**
+- Features: Prev Returns: 0.0/3 | Prev RTOs: 1.0/3 | Prepaid | Fashion
+- Decision: VERIFY_MANUALLY
+- Reasoning: The customer has a moderate RTO rate of 33.3% (1 out of 3 past orders), which falls into the 30-50% moderate risk threshold, requiring manual verification.
+
+**[Sample 19] Order ID ORD_0000516**
+- Features: Prev Returns: 0.0/2 | Prev RTOs: 0.0/2 | COD | Footwear
+- Decision: ALLOW
+- Reasoning: The customer has a clean history with zero returns and zero RTOs across past orders. Based on the evaluation rules, orders with a clean account history should be allowed.
+
+**[Sample 20] Order ID ORD_0004131**
+- Features: Prev Returns: 0.0/3 | Prev RTOs: 0.0/3 | COD | Fashion
+- Decision: ALLOW
+- Reasoning: The customer has a clean history with zero returns and zero RTOs across past orders. Orders with a clean account history should be allowed.

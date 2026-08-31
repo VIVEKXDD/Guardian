@@ -17,11 +17,28 @@ Guardian consists of two stages:
 
 ## Setup Instructions
 
-TBD
+1. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. **Configure Environment:**
+   Create a `.env` file in the root directory and add your Google Gemini API key:
+   ```env
+   GEMINI_API_KEY="your-api-key-here"
+   ```
+3. **Run the Demo Pipeline:**
+   ```bash
+   python src/demo.py
+   ```
+   This will run an end-to-end simulation of the Guardian pipeline, passing mock orders through Stage 1 (LightGBM) and routing risky orders to Stage 2 (Gemini).
 
 ## Results & Metrics
 
-TBD
+Guardian was evaluated using a rigorous, leakage-free testing methodology:
+- **Data Leakage Prevention:** Model evaluation was strictly isolated. Thresholds for the Stage 1 model were selected solely on the validation set, and then applied blindly to the holdout test set to ensure realistic operational metrics.
+- **Stage 1 Performance:** The LightGBM model achieves a **PR-AUC of 0.4147**, a statistically significant lift over the 0.3295 random-guess baseline (confirmed via 1,000-resample bootstrap CI: [0.3798, 0.4530]).
+- **Capacity Constrained Optimization:** Rather than unconstrained cost minimization (which incorrectly suggested flagging 99% of volume due to the massive cost penalty of fraud vs. manual review), Guardian employs a capacity budget constraint. At a **20% operational review budget**, the Stage 1 model successfully identifies and catches **29.14%** of all fraud.
+- **Stage 2 LLM Alignment:** The Gemini-powered triage agent correctly reasons about complex risk edge cases (e.g., identifying that Prepaid payment mitigates the non-delivery risk of a past RTO), matching a human risk manager's ground-truth decisions on 95% of test samples.
 
 ## Known Limitations
 

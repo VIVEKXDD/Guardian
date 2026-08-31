@@ -79,16 +79,20 @@ if __name__ == "__main__":
         
     agent = LLMTriageAgent(use_mock=False)
     
-    print("--- Testing Stage 2 LLM Agent (Gemini) on 20 Samples ---")
+    print("--- Testing Stage 2 LLM Agent (Gemini) on Samples 12-20 ---")
     np.random.seed(42)
-    sample_indices = np.random.choice(test.index, 20, replace=False)
+    # Grab the same 20 indices, but only process the last 9
+    sample_indices = np.random.choice(test.index, 20, replace=False)[11:]
     
     for i, idx in enumerate(sample_indices):
         order = test.loc[idx]
-        print(f"\n[Sample {i+1}] Order ID {order['order_id']}")
+        print(f"\n[Sample {i+12}] Order ID {order['order_id']}")
         print(f"Features: Prev Returns: {order['past_return_count']}/{order['past_order_count']} | Prev RTOs: {order['past_rto_count']}/{order['past_order_count']} | {order['payment_method']} | {order['category']}")
         
         res = agent.triage_order(order)
         print(f"Decision: {res.get('decision', 'ERROR')}")
         print(f"Reasoning: {res.get('reasoning', 'ERROR')}")
-        time.sleep(2)
+        
+        # Google GenAI Free Tier has a strict 5 Requests Per Minute (RPM) limit.
+        # 60 seconds / 5 requests = 12 seconds per request. We use 15 to be safe.
+        time.sleep(15)
