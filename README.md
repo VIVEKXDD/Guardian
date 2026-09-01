@@ -24,7 +24,7 @@ Guardian consists of two stages:
 2. **Configure Environment:**
    Create a `.env` file in the root directory and add your Google Gemini API key:
    ```env
-   GEMINI_API_KEY="your-api-key-here"
+   Openai_API_KEY="your-api-key-here"
    ```
 3. **Run the Demo Pipeline:**
    ```bash
