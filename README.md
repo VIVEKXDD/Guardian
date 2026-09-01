@@ -30,7 +30,19 @@ Guardian consists of two stages:
    ```bash
    python src/demo.py
    ```
-   This will run an end-to-end simulation of the Guardian pipeline, passing mock orders through Stage 1 (LightGBM) and routing risky orders to Stage 2 (Gemini).
+   This will run an end-to-end simulation of the Guardian pipeline, passing mock orders through Stage 1 (LightGBM) and routing risky orders to Stage 2 (Gemini/OpenAI).
+
+4. **Run the Interactive Dashboard (Streamlit):**
+   ```bash
+   streamlit run src/dashboard.py
+   ```
+   This will launch a sleek web interface where you can manually tweak order parameters and see the Stage 1 & 2 risk engines react in real-time.
+
+5. **Run the API Server (FastAPI):**
+   ```bash
+   python src/api.py
+   ```
+   This exposes the Guardian engine as a REST API on `localhost:8000/score_order`.
 
 ## Results & Metrics
 

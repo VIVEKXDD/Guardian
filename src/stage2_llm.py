@@ -5,18 +5,19 @@ import pandas as pd
 import numpy as np
 
 try:
-    from google import genai
-    from google.genai import types
+    import openai
 except ImportError:
-    genai = None
+    openai = None
 
 class LLMTriageAgent:
     def __init__(self, use_mock=False):
         self.use_mock = use_mock
         if not use_mock:
-            if genai is None:
-                raise ImportError("google-genai is not installed.")
-            self.client = genai.Client()
+            if openai is None:
+                raise ImportError("openai package is not installed.")
+            # Map the user's specific env var name
+            api_key = os.environ.get("Openai_API_KEY") or os.environ.get("OPENAI_API_KEY")
+            self.client = openai.OpenAI(api_key=api_key)
         
     def _generate_prompt(self, order_series):
         """Constructs the prompt for the LLM."""
@@ -55,15 +56,16 @@ JSON Response:
             return {"decision": "ALLOW", "reasoning": "Mock fallback"}
         else:
             try:
-                response = self.client.models.generate_content(
-                    model='gemini-3.6-flash',
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=0.0
-                    ),
+                response = self.client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "You must respond with a valid JSON object."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    response_format={"type": "json_object"},
+                    temperature=0.0
                 )
-                return json.loads(response.text)
+                return json.loads(response.choices[0].message.content)
             except Exception as e:
                 return {"reasoning": f"LLM Call Failed: {str(e)}", "decision": "ERROR"}
 
@@ -73,13 +75,13 @@ if __name__ == "__main__":
     
     test = pd.read_csv('data/test.csv')
     
-    if "GEMINI_API_KEY" not in os.environ:
-        print("WARNING: GEMINI_API_KEY not found in environment. Please export GEMINI_API_KEY to run the real LLM.")
+    if "Openai_API_KEY" not in os.environ and "OPENAI_API_KEY" not in os.environ:
+        print("WARNING: Openai_API_KEY not found in environment. Please export it to run the real LLM.")
         exit(1)
         
     agent = LLMTriageAgent(use_mock=False)
     
-    print("--- Testing Stage 2 LLM Agent (Gemini) on Samples 12-20 ---")
+    print("--- Testing Stage 2 LLM Agent (OpenAI) on Samples 12-20 ---")
     np.random.seed(42)
     # Grab the same 20 indices, but only process the last 9
     sample_indices = np.random.choice(test.index, 20, replace=False)[11:]
@@ -93,6 +95,5 @@ if __name__ == "__main__":
         print(f"Decision: {res.get('decision', 'ERROR')}")
         print(f"Reasoning: {res.get('reasoning', 'ERROR')}")
         
-        # Google GenAI Free Tier has a strict 5 Requests Per Minute (RPM) limit.
-        # 60 seconds / 5 requests = 12 seconds per request. We use 15 to be safe.
-        time.sleep(15)
+        # OpenAI limits are much higher than Gemini free tier, so 1 second is enough
+        time.sleep(1)

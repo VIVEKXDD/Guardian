@@ -45,7 +45,7 @@ def run_guardian_pipeline(order_data, customer_history):
     print("\n⚠️ FLAG: Order exceeds risk threshold. Routing to Stage 2.")
     
     # 4. Stage 2: LLM Triage
-    print("\n🤖 STAGE 2: LLM Agent Triage (Gemini 3.6 Flash)")
+    print("\n🤖 STAGE 2: LLM Agent Triage (OpenAI gpt-4o-mini)")
     agent = LLMTriageAgent(use_mock=False)
     
     # Use the first row as a series
@@ -57,8 +57,8 @@ def run_guardian_pipeline(order_data, customer_history):
     print("==================================================\n")
 
 if __name__ == "__main__":
-    if "GEMINI_API_KEY" not in os.environ:
-        print("WARNING: GEMINI_API_KEY not found. Please setup your .env file.")
+    if "Openai_API_KEY" not in os.environ and "OPENAI_API_KEY" not in os.environ:
+        print("WARNING: Openai_API_KEY not found. Please setup your .env file.")
         exit(1)
         
     # Scenario A: Clean History
@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
     run_guardian_pipeline(scen_a_order, scen_a_hist)
     import time
-    time.sleep(15) # respect rate limit
+    time.sleep(1) # respect rate limit
     run_guardian_pipeline(scen_b_order, scen_b_hist)
-    time.sleep(15)
+    time.sleep(1)
     run_guardian_pipeline(scen_c_order, scen_c_hist)
