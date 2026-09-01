@@ -294,8 +294,13 @@ else:
     st.markdown("### 📊 Stage 1: ML Risk Engine (Pre-Shipment)")
     m1, m2, m3 = st.columns(3)
     m1.metric("Predicted Fraud Risk", f"{prob*100:.1f}%")
+    m1.caption("Probability of Return/RTO")
+    
     m2.metric("Operational Capacity Threshold", f"{threshold*100:.1f}%")
+    m2.caption("Score cutoff for the 20% review budget")
+    
     m3.metric("Cost Budget Allocation", "Top 20%")
+    m3.caption("Max daily volume we can manually verify")
     
     if prob <= threshold:
         progress_bar.progress(100)

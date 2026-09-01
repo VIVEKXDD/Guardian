@@ -42,9 +42,14 @@ Based on the customer's historical patterns and current order traits, output a J
 2. "decision": One of ["ALLOW", "VERIFY_MANUALLY", "RESTRICT_COD"]
 
 RULES:
-- If return rate or RTO rate is very high (> 50%) and payment is COD, use RESTRICT_COD.
+- If return rate or RTO rate is very high (> 50%) and payment is COD, consider RESTRICT_COD.
 - If return rate is moderate (e.g., 30-50%), use VERIFY_MANUALLY.
 - If history is mostly clean or no history, use ALLOW.
+
+CRITICAL INSTRUCTION ON SAMPLE SIZE:
+- You MUST pay attention to `past_order_count` (the sample size, n).
+- A 100% RTO rate on exactly 1 past order (n=1) is thin evidence. You should not overreact to n=1. It typically warrants a lighter VERIFY_MANUALLY touch rather than an outright restriction.
+- A high RTO or return rate over multiple orders (e.g., n>=3) is strong evidence of a bad actor and justifies RESTRICT_COD if the current order is COD.
 
 JSON Response:
 """
@@ -56,6 +61,7 @@ JSON Response:
             return {"decision": "ALLOW", "reasoning": "Mock fallback"}
         else:
             try:
+                features = order_series.to_dict()
                 response = self.client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
