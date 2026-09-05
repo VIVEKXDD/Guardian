@@ -15,6 +15,12 @@ Guardian consists of two stages to balance latency, cost, and reasoning capabili
 1. **Stage 1 (Pre-shipment Risk Scorer):** A highly optimized LightGBM model that evaluates an order at placement (using customer history, product details, and geographic RTO rates) to output a raw probability score. If the score is below the operational threshold, it is instantly Auto-Approved.
 2. **Stage 2 (LLM Deep Triage):** If the order exceeds the risk threshold, it is routed to an OpenAI-powered reasoning agent. The LLM evaluates the customer's historical patterns and nuances (like sample sizes and payment methods) to output a final decision (`ALLOW` / `VERIFY_MANUALLY` / `RESTRICT_COD`) and a detailed reasoning log.
 
+<p align="center">
+  <img src="docs/architecture_diagram.png" alt="Guardian Architecture Diagram" width="500" />
+</p>
+
+*For detailed architectural design choices and latency trade-offs, see [ARCHITECTURE.md](ARCHITECTURE.md).*
+
 ## Setup Instructions
 
 1. **Install dependencies:**
