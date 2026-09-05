@@ -2,7 +2,7 @@
 
 Guardian follows a two-stage hybrid pipeline to balance cost, latency, and reasoning capability:
 
-![Guardian Architecture Diagram](docs/architecture_diagram.png)
+![Guardian Architecture Diagram](architecture_diagram.png)
 
 <details>
 <summary><b>View Mermaid Source Code</b></summary>

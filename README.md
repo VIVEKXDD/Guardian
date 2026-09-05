@@ -19,7 +19,54 @@ Guardian consists of two stages to balance latency, cost, and reasoning capabili
   <img src="docs/architecture_diagram.png" alt="Guardian Architecture Diagram" width="500" />
 </p>
 
-*For detailed architectural design choices and latency trade-offs, see [ARCHITECTURE.md](ARCHITECTURE.md).*
+*For detailed architectural design choices and latency trade-offs, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).*
+
+## Repository Structure
+
+```text
+Guardian/
+├── data/                      # Synthetic data, feature matrices & train/val/test splits
+│   ├── baseline_preds.csv     # Random & baseline benchmark predictions
+│   ├── features.csv           # Full engineered feature dataset
+│   ├── synthetic_orders.csv   # Raw probabilistic e-commerce orders
+│   ├── train.csv              # Isolated training set
+│   ├── val.csv                # Isolated validation set (for threshold tuning)
+│   └── test.csv               # Frozen holdout test set (unseen evaluation)
+├── docs/                      # Technical specifications, diagrams & decision logs
+│   ├── plots/                 # EDA distribution & risk correlation charts
+│   ├── ARCHITECTURE.md        # Pipeline design, latency analysis & stage separation
+│   ├── DATA_NOTES.md          # Synthetic data generation calibration methodology
+│   ├── DECISIONS.md           # Architecture Decision Records (ADR log)
+│   ├── ISSUES.md              # Post-mortems, bug catches & failure recoveries
+│   ├── VIDEO_SCRIPT.md        # 5-minute rubric-aligned video demonstration script
+│   ├── stage2_results.md      # Ground truth vs Stage 2 LLM audit logs
+│   ├── metrics.txt            # Frozen model benchmark outputs
+│   └── architecture_diagram.png # High-resolution architecture visual
+├── models/                    # Serialized machine learning artifacts
+│   ├── optimal_threshold.txt  # Tuned operational capacity threshold (0.5120)
+│   └── stage1_lgbm.txt        # Trained LightGBM Booster model
+├── notebooks/                 # Exploratory data analysis & statistical sweeps
+│   ├── bootstrap_ci.py        # 1,000-resample bootstrap confidence intervals
+│   ├── check_interactions.py  # Feature cross-product & interaction validation
+│   ├── eda.py                 # Pincode tier & category risk distribution analysis
+│   └── eval_sweep.py          # Operational threshold sweep experiments
+├── src/                       # Core production modules
+│   ├── api.py                 # FastAPI REST microservice (/score_order)
+│   ├── dashboard.py           # Streamlit operational triage UI (with video presets)
+│   ├── data_generation.py     # Probabilistic e-commerce transaction generator
+│   ├── demo.py                # End-to-end command-line simulation pipeline
+│   ├── evaluate.py            # Leakage-free model evaluation runner
+│   ├── features.py            # Domain-specific feature engineering transformers
+│   ├── split.py               # Leakage-free train/val/test partitioning
+│   ├── stage2_llm.py          # Calibrated OpenAI triage reasoning agent
+│   ├── threshold_optimizer.py # Capacity-constrained budget optimizer
+│   └── train.py               # LightGBM model training with early stopping
+├── tests/                     # Automated pytest test suites
+│   └── test_features.py       # Deterministic unit tests for feature pipelines
+├── .gitignore
+├── README.md                  # Project overview, metrics & operational guide
+└── requirements.txt           # Pinned production & development dependencies
+```
 
 ## Setup Instructions
 
