@@ -22,15 +22,15 @@ Guardian consists of two stages to balance latency, cost, and reasoning capabili
    pip install -r requirements.txt
    ```
 2. **Configure Environment:**
-   Create a `.env` file in the root directory and add your Google Gemini API key:
+   Create a `.env` file in the root directory and add your OpenAI API key:
    ```env
-   Openai_API_KEY="your-api-key-here"
+   OPENAI_API_KEY="your-api-key-here"
    ```
 3. **Run the Demo Pipeline:**
    ```bash
    python src/demo.py
    ```
-   This will run an end-to-end simulation of the Guardian pipeline, passing mock orders through Stage 1 (LightGBM) and routing risky orders to Stage 2 (Gemini/OpenAI).
+   This will run an end-to-end simulation of the Guardian pipeline, passing mock orders through Stage 1 (LightGBM) and routing risky orders to Stage 2 (OpenAI).
 
 4. **Run the Interactive Dashboard (Streamlit):**
    ```bash
@@ -56,6 +56,7 @@ Rather than unconstrained cost minimization (which incorrectly suggested flaggin
 **The Economic Reality (FP vs FN Costs):**
 - **Cost of a False Negative (Missed Fraud):** ~₹150 for an RTO (forward & reverse logistics) or ~₹250 for a Return (shipping + QC).
 - **Cost of a False Positive (Flagging a Good Order):** ~₹10 for a manual verification call. Because the friction is low, traditional cost-sensitive learning algorithms aggressively flag everything, which doesn't scale operationally.
+*(Note: These are illustrative cost estimates for this analysis, not measured or sourced figures from a specific vendor.)*
 
 To solve this, we assume a manual review team can only handle calling the top 20% of orders daily:
 - **Operational Threshold:** `0.5120` risk probability.
