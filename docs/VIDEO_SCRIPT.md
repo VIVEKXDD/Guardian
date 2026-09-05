@@ -30,10 +30,10 @@
 "To prove this works, I evaluated Guardian using a strict, leakage-free methodology. 
 "Instead of an unconstrained model that tries to flag everything to save money, I built a capacity-constrained optimizer. We assumed a real-world scenario where the manual review team can only handle calling the top 20% of orders. At that specific 20% budget cutoff, Stage 1 successfully intercepts **29.14%** of all total fraud. We are maximizing the ROI of the human review team without needing to hire more people.
 
-"And for transparency, I documented the AI's failures. Early on, the Stage 2 LLM actually *failed* that edge case I just showed you. It hallucinated that a 100% RTO rate on `n=1` orders was a massive threat. I had to explicitly calibrate the prompt to teach it statistical sample sizes, which restored human-level nuance to the agent."
+"And for transparency, I documented the AI's failures. Early on, the Stage 2 LLM actually *failed* that edge case I just showed you. It over-weighted a thin sample, treating a 100% RTO rate on `n=1` orders as a massive threat. I had to explicitly calibrate the prompt to teach it to account for small sample sizes, which restored human-level nuance to the agent."
 
 ## 5. Honest Limitations & Next Steps (4:30 - 5:00)
 *Visual: Back to speaking to camera.*
-"To be completely transparent, the biggest limitation of Guardian right now is the dataset. Because real COD and pincode-level RTO data is highly proprietary in India, I had to generate a synthetic dataset probabilistically calibrated to published industry reports. While the pipeline architecture is 100% production-ready—complete with a FastAPI backend and this Streamlit UI—the exact precision/recall numbers are tied to simulated data. 
+"To be completely transparent, the biggest limitation of Guardian right now is the dataset. Because real COD and pincode-level RTO data is highly proprietary in India, I had to generate a synthetic dataset probabilistically calibrated to published industry reports. While the architecture—a FastAPI backend and this Streamlit UI—mirrors how this would run in production, the exact precision/recall numbers are tied to simulated data. 
 "The next step would be deploying this alongside a real Shopify backend and fine-tuning the Stage 1 model on actual live traffic. 
 "Thanks for watching."

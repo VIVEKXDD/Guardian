@@ -53,7 +53,11 @@ Guardian was evaluated using a rigorous, leakage-free testing methodology:
 ### The Cost Table (Capacity-Constrained Optimization)
 Rather than unconstrained cost minimization (which incorrectly suggested flagging 99% of volume due to the massive cost penalty of fraud vs. manual review), Guardian employs a **capacity budget constraint**. 
 
-Assuming a manual review team can only handle calling the top 20% of orders:
+**The Economic Reality (FP vs FN Costs):**
+- **Cost of a False Negative (Missed Fraud):** ~₹150 for an RTO (forward & reverse logistics) or ~₹250 for a Return (shipping + QC).
+- **Cost of a False Positive (Flagging a Good Order):** ~₹10 for a manual verification call. Because the friction is low, traditional cost-sensitive learning algorithms aggressively flag everything, which doesn't scale operationally.
+
+To solve this, we assume a manual review team can only handle calling the top 20% of orders daily:
 - **Operational Threshold:** `0.5120` risk probability.
 - **Fraud Caught:** **29.14%** of all fraudulent/RTO orders are intercepted within that 20% bandwidth.
 - **Impact:** By focusing the 20% operational budget purely on the highest-risk segment prioritized by LightGBM, the business maximizes loss-prevention ROI without expanding headcount.
