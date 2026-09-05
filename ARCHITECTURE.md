@@ -2,6 +2,11 @@
 
 Guardian follows a two-stage hybrid pipeline to balance cost, latency, and reasoning capability:
 
+![Guardian Architecture Diagram](docs/architecture_diagram.png)
+
+<details>
+<summary><b>View Mermaid Source Code</b></summary>
+
 ```mermaid
 graph TD
     A[New Order Webhook] --> B[Stage 1: Feature Engineering]
@@ -22,6 +27,7 @@ graph TD
     I -->|Agent Calls Customer| F
     J -->|Customer Pays Upfront| F
 ```
+</details>
 
 ### Why a Two-Stage Pipeline?
 1. **Cost & Latency:** Running an LLM on 10,000 orders a day is extremely expensive and slow. Stage 1 (LightGBM) acts as a high-speed, ultra-cheap filter, automatically approving the bottom ~80% of safe traffic in milliseconds.
