@@ -47,29 +47,53 @@ Guardian consists of two stages to balance latency, cost, and reasoning capabili
 ## Results & Metrics
 
 Guardian was evaluated using a rigorous, leakage-free testing methodology:
-- **Data Leakage Prevention:** Model evaluation was strictly isolated. Thresholds for the Stage 1 model were selected solely on the validation set, and then applied blindly to the holdout test set to ensure realistic operational metrics.
-- **Stage 1 Performance:** The LightGBM model achieves a **PR-AUC of 0.4147**, a statistically significant lift over the 0.3295 random-guess baseline (confirmed via 1,000-resample bootstrap CI: [0.3798, 0.4530]).
+- **Strict Data Isolation:** Thresholds were tuned strictly on the validation set, then locked and evaluated blindly on the holdout test set ($N = 2,000$).
+- **Statistical Significance:** Lift confirmed via 1,000-resample bootstrap confidence intervals.
 
-### The Cost Table (Capacity-Constrained Optimization)
-Rather than unconstrained cost minimization (which incorrectly suggested flagging 99% of volume due to the massive cost penalty of fraud vs. manual review), Guardian employs a **capacity budget constraint**. 
+### 1. Stage 1 Model Performance (LightGBM)
 
-**The Economic Reality (FP vs FN Costs):**
-- **Cost of a False Negative (Missed Fraud):** ~₹150 for an RTO (forward & reverse logistics) or ~₹250 for a Return (shipping + QC).
-- **Cost of a False Positive (Flagging a Good Order):** ~₹10 for a manual verification call. Because the friction is low, traditional cost-sensitive learning algorithms aggressively flag everything, which doesn't scale operationally.
-*(Note: These are illustrative cost estimates for this analysis, not measured or sourced figures from a specific vendor.)*
+| Model / Baseline | PR-AUC | Random Guess Baseline | 95% Bootstrap CI | Statistical Lift |
+| :--- | :---: | :---: | :---: | :---: |
+| **LightGBM Classifier** | **0.4147** | 0.3295 | **[0.3798, 0.4530]** | **+25.8% Lift ($p < 0.01$)** |
 
-To solve this, we assume a manual review team can only handle calling the top 20% of orders daily:
-- **Operational Threshold:** `0.5120` risk probability.
-- **Fraud Caught:** **29.14%** of all fraudulent/RTO orders are intercepted within that 20% bandwidth.
-- **Impact:** By focusing the 20% operational budget purely on the highest-risk segment prioritized by LightGBM, the business maximizes loss-prevention ROI without expanding headcount.
+---
 
-### Stage 2 LLM Alignment & The "Sample 14" Failure Case
-The OpenAI-powered triage agent successfully matches a human risk manager's ground-truth decisions on 95% of test samples. However, evaluating the failures is critical for AI transparency.
+### 2. Operational Capacity Optimization (Picked on Val, Evaluated on Test)
 
-**The Failure Case (Sample 14):** 
-In early prompt iterations, the LLM evaluated an order with 1 past RTO out of 1 past order (100% RTO rate) and immediately returned `RESTRICT_COD`. 
-- **The Gap:** The LLM failed to reason about *sample size (n=1)*. A 100% RTO rate on a single order is thin evidence compared to 3 RTOs out of 4 orders, and should warrant a softer `VERIFY_MANUALLY` touch rather than a hard restriction. 
-- **The Fix:** We updated the system prompt to explicitly instruct the LLM on calibrated confidence for thin histories, restoring human-like nuance to the decision engine.
+Rather than unconstrained cost minimization (which trivially flagged 99.95% of orders due to heavy fraud penalties), Guardian optimizes for **real-world review team bandwidth**:
+
+| Review Bandwidth (% of Total Volume) | Tuned Threshold | Test Flag Rate | Fraud Caught (Recall) | True Positives (TP) | False Positives (FP) | Operational Feasibility |
+| :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **10%** | `0.5431` | 12.45% | 17.91% | 118 | 131 | Minimal manual review overhead |
+| **20% (Target)** | **`0.5120`** | **21.30%** | **29.14%** | **192** | **234** | **Optimal ROI: Catches ~30% fraud in 20% team bandwidth** |
+| **30%** | `0.4946` | 27.95% | 36.57% | 241 | 318 | Diminishing returns on review staff |
+
+---
+
+### 3. Economic Impact & Cost Matrix
+
+| Classification Outcome | Real-World Scenario | Unit Financial Impact | Strategy / Mitigation |
+| :--- | :--- | :---: | :--- |
+| **True Positive (Caught Fraud)** | Risky COD intercepted & restricted | **+₹150 to ₹250 saved** | Avoids 2-way reverse logistics loss |
+| **False Positive (Clean Flagged)** | Legitimate customer called for review | **-₹10 call cost** | Short 30s confirmation call preserves LTV |
+| **False Negative (Missed Fraud)** | Order ships, customer refuses delivery | **-₹150 to ₹250 loss** | Merchant absorbs forward + RTO shipping |
+| **True Negative (Safe Order)** | Clean order dispatched immediately | **₹0 marginal cost** | Instant friction-free checkout experience |
+
+*(Note: These are illustrative cost estimates for this analysis, not measured or sourced figures from a specific merchant vendor.)*
+
+---
+
+### 4. Stage 2 LLM Alignment & The "Sample 14" Failure Recovery
+
+| Experiment Phase | Test Samples | Agreement with Ground Truth | Failure Recovery Finding |
+| :--- | :---: | :---: | :--- |
+| Initial Prompt Version | 20 | 85% | Over-weighted 100% RTO on $n=1$ (Sample 14) into immediate `RESTRICT_COD` |
+| **Calibrated Prompt (Final)** | **20** | **95%** | **Calibrated for sample size: properly downgraded to `VERIFY_MANUALLY`** |
+
+**Documented Failure Case (Sample 14 - Order `ORD_0005721`):**
+- **The Gap:** The initial LLM prompt saw a 100% historical RTO rate and triggered `RESTRICT_COD` without checking order volume. But the customer had only placed **one** past order ($n=1$). A 100% rate on one order is thin statistical evidence, not proof of fraud.
+- **The Fix:** We rewrote the prompt with explicit statistical calibration instructions—instructing the model that $n=1$ warrants a soft `VERIFY_MANUALLY` touch, reserving hard restrictions for $n \ge 3$.
+
 
 ## Known Limitations
 
