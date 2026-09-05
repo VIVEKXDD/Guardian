@@ -11,9 +11,9 @@ Existing tooling is largely reactive (e.g., video proof for disputes). Guardian 
 
 ## Architecture Summary
 
-Guardian consists of two stages:
-1. **Stage 1 (Pre-shipment Risk Scorer):** A LightGBM model that evaluates an order at placement (using customer history, product details, and geographic RTO rates) to output a risk tier (`allow` / `verify` / `restrict`).
-2. **Stage 2 (Return-time Triage):** An LLM-based reasoning layer that evaluates return initiation reasons against historical patterns to route the return (`auto-approve refund` / `request evidence` / `flag for manual review`).
+Guardian consists of two stages to balance latency, cost, and reasoning capability:
+1. **Stage 1 (Pre-shipment Risk Scorer):** A highly optimized LightGBM model that evaluates an order at placement (using customer history, product details, and geographic RTO rates) to output a raw probability score. If the score is below the operational threshold, it is instantly Auto-Approved.
+2. **Stage 2 (LLM Deep Triage):** If the order exceeds the risk threshold, it is routed to an OpenAI-powered reasoning agent. The LLM evaluates the customer's historical patterns and nuances (like sample sizes and payment methods) to output a final decision (`ALLOW` / `VERIFY_MANUALLY` / `RESTRICT_COD`) and a detailed reasoning log.
 
 ## Setup Instructions
 
@@ -49,8 +49,22 @@ Guardian consists of two stages:
 Guardian was evaluated using a rigorous, leakage-free testing methodology:
 - **Data Leakage Prevention:** Model evaluation was strictly isolated. Thresholds for the Stage 1 model were selected solely on the validation set, and then applied blindly to the holdout test set to ensure realistic operational metrics.
 - **Stage 1 Performance:** The LightGBM model achieves a **PR-AUC of 0.4147**, a statistically significant lift over the 0.3295 random-guess baseline (confirmed via 1,000-resample bootstrap CI: [0.3798, 0.4530]).
-- **Capacity Constrained Optimization:** Rather than unconstrained cost minimization (which incorrectly suggested flagging 99% of volume due to the massive cost penalty of fraud vs. manual review), Guardian employs a capacity budget constraint. At a **20% operational review budget**, the Stage 1 model successfully identifies and catches **29.14%** of all fraud.
-- **Stage 2 LLM Alignment:** The Gemini-powered triage agent correctly reasons about complex risk edge cases (e.g., identifying that Prepaid payment mitigates the non-delivery risk of a past RTO), matching a human risk manager's ground-truth decisions on 95% of test samples.
+
+### The Cost Table (Capacity-Constrained Optimization)
+Rather than unconstrained cost minimization (which incorrectly suggested flagging 99% of volume due to the massive cost penalty of fraud vs. manual review), Guardian employs a **capacity budget constraint**. 
+
+Assuming a manual review team can only handle calling the top 20% of orders:
+- **Operational Threshold:** `0.5120` risk probability.
+- **Fraud Caught:** **29.14%** of all fraudulent/RTO orders are intercepted within that 20% bandwidth.
+- **Impact:** By focusing the 20% operational budget purely on the highest-risk segment prioritized by LightGBM, the business maximizes loss-prevention ROI without expanding headcount.
+
+### Stage 2 LLM Alignment & The "Sample 14" Failure Case
+The OpenAI-powered triage agent successfully matches a human risk manager's ground-truth decisions on 95% of test samples. However, evaluating the failures is critical for AI transparency.
+
+**The Failure Case (Sample 14):** 
+In early prompt iterations, the LLM evaluated an order with 1 past RTO out of 1 past order (100% RTO rate) and immediately returned `RESTRICT_COD`. 
+- **The Gap:** The LLM failed to reason about *sample size (n=1)*. A 100% RTO rate on a single order is thin evidence compared to 3 RTOs out of 4 orders, and should warrant a softer `VERIFY_MANUALLY` touch rather than a hard restriction. 
+- **The Fix:** We updated the system prompt to explicitly instruct the LLM on calibrated confidence for thin histories, restoring human-like nuance to the decision engine.
 
 ## Known Limitations
 
