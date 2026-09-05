@@ -38,7 +38,6 @@ Guardian/
 │   ├── DATA_NOTES.md          # Synthetic data generation calibration methodology
 │   ├── DECISIONS.md           # Architecture Decision Records (ADR log)
 │   ├── ISSUES.md              # Post-mortems, bug catches & failure recoveries
-│   ├── VIDEO_SCRIPT.md        # 5-minute rubric-aligned video demonstration script
 │   ├── stage2_results.md      # Ground truth vs Stage 2 LLM audit logs
 │   ├── metrics.txt            # Frozen model benchmark outputs
 │   └── architecture_diagram.png # High-resolution architecture visual

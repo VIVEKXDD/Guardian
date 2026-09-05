@@ -1,2 +1,11 @@
-# Ignore environment variables file
+# Environment variables
 .env
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Local video script
+docs/VIDEO_SCRIPT.md
