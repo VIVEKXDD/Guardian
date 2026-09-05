@@ -1,74 +1,70 @@
-# 5-Minute Video Script: Guardian AI Risk Engine
+# 5-Minute Video Script: Guardian AI Risk Engine (Final Refined)
 
 > **Rubric Alignment Checklist:**
-> - 🎯 **Problem Taste (0:00 - 0:20):** High-stakes Indian e-commerce unit economics (COD RTO + Returns). Proactive prevention, not reactive disputes.
-> - 🛠️ **Build Quality & Live Demo (0:20 - 2:30):** Fully structured, runnable repo (FastAPI + LightGBM + Streamlit + OpenAI). Clean modularity and real-time execution.
-> - 🧠 **AI Judgment (2:30 - 3:30):** The right tool in the right place—and where *not* to use one (LightGBM for 80% volume; LLM reserved strictly for top 20% ambiguous cases).
-> - 🔧 **Failure Recovery (3:30 - 4:30):** What broke at 2 AM and how we fixed it (the 99% unconstrained flagging trap & the Sample 14 $n=1$ calibration bug).
-> - 🔍 **Honest Limitations (4:30 - 5:00):** Synthetic data grounding and real-world deployment roadmap.
+> - 🎯 **Problem Taste (0:00 - 0:20):** High-stakes Indian e-commerce unit economics (COD RTO + Returns). Proactive prevention, not reactive disputes. Contextualized against Razorpay's gap.
+> - 🛠️ **Build Quality & Live Demo (0:20 - 2:30):** Fully structured, runnable repo (FastAPI + LightGBM + Streamlit + OpenAI). Real-time execution across 3 live presets. Rigorous dataset justification (ASOS / Kaggle gaps).
+> - 🧠 **AI Judgment (2:30 - 3:30):** The right tool in the right place — and where *not* to use one (LightGBM for 80% volume at sub-millisecond latency; LLM reserved for top 20% ambiguous cases).
+> - 🔧 **Failure Recovery (3:30 - 4:30):** What broke and how it got fixed — the unconstrained-flagging trap and the Sample 14 ($n=1$) calibration bug.
+> - 🔍 **Honest Limitations (4:30 - 5:00):** Synthetic data grounding, illustrative cost assumptions, real-world Shopify roadmap.
 
 ---
 
 ## 1. Problem Taste: Why This Matters (0:00 - 0:20)
 *Visual: Speaking to camera. Crisp delivery, immediate hook.*
 
-"In Indian e-commerce, Returns and Cash-on-Delivery RTO—Return to Origin—are silent margin killers. In fashion and footwear, return rates regularly cross 30%, and COD RTOs exceed 35% in tier-2 and tier-3 pincodes. When an order fails, the merchant absorbs both forward and reverse logistics. 
+"In Indian e-commerce, returns and Cash-on-Delivery RTOs are silent margin killers. In fashion and footwear, return rates regularly cross 30%. COD RTOs exceed 35% in tier-2 and tier-3 pincodes. Every time an order fails, the merchant eats both the forward *and* the reverse shipping cost.
 
-Most tools today are purely reactive—they help you gather video proof for disputes *after* the cash is gone. I built **Guardian**: a proactive, two-stage hybrid AI risk engine that intercepts and triages high-risk orders *before* the warehouse packs the box."
+Here's the problem: the tools that exist today — proof-of-packing videos, dispute evidence platforms — only help you win the argument *after* the loss already happened. And Razorpay's own risk stack is strong on card fraud and chargebacks — but returns and RTO sit in a genuine gap outside that. Nobody's scoring the risk *before* the box ships. So I built **Guardian** — a two-stage hybrid AI risk engine that does exactly that."
 
 ---
 
 ## 2. Build Quality & Live Demo (0:20 - 2:30)
 *Visual: Screen recording of the Streamlit dashboard (`localhost:8501`). Clean, dark-mode UI.*
 
-"Let's see it run. The repo is structured as an end-to-end pipeline: a FastAPI backend serving risk scores, an optimized LightGBM model, and this Streamlit operational dashboard designed for fraud review teams.
+"Let's see it work. Under the hood: a FastAPI backend serving risk scores, an optimized LightGBM model, and this dashboard, built for a fraud review team to actually use.
+
+Before writing any model code, I went looking for real data. There's an academic return-prediction dataset from ASOS — but it's UK retail, no COD, no pincode signal, the two things that actually drive Indian RTO. Kaggle's Indian datasets are real too, but they're built for card fraud, a different problem entirely. So I built a probabilistic synthetic generator instead, calibrated to published Indian return and RTO rates — then spent real time hunting down near-deterministic shortcuts and one silently underfit model before trusting a single number that's about to show up on this screen.
 
 *(Click the 'Low Risk' preset)*
-"Scenario one: A standard, low-risk customer. Clean order history, prepaid payment, tier-1 pincode. When I execute the pipeline, Stage 1—our LightGBM classifier—evaluates historical returns, order value, and pincode risk. It scores the fraud probability at roughly 30%. Because this is safely below our operational capacity threshold of 51.2%, it is instantly **Auto-Approved**. It runs in under 15 milliseconds with zero customer friction and zero LLM cost.
+"Scenario one. Clean order history, prepaid, tier-1 pincode. I hit execute — Stage 1 reads the return history, order value, and pincode risk, and scores this at around 30%. That's comfortably under our 51.2% operational threshold, so it's **Auto-Approved** instantly in single-digit milliseconds. Zero friction for a good customer, zero LLM spend.
 
 *(Click the 'High Risk' preset)*
-"Scenario two: High fraud risk. The customer has returned 3 of their last 4 orders, has an RTO history, and is ordering high-value electronics via Cash-on-Delivery. 
-"Watch what happens: Stage 1 scores this at over 65%, immediately breaching the 51.2% threshold and routing it to Stage 2. Stage 2 doesn't use hardcoded regex or brittle rules; it triggers an OpenAI reasoning agent. The agent examines the full customer profile and outputs **RESTRICT_COD**, accompanied by plain-English audit reasoning. The business avoids an almost certain ₹200 logistics loss.
+"Scenario two. This customer has returned 3 of their last 4 orders, has an RTO on record, and is placing a high-value electronics order — on COD. Watch: Stage 1 pushes this well past our threshold, straight into Stage 2. And Stage 2 isn't a wall of if/else rules — it's an OpenAI reasoning agent reading the full customer profile. It comes back with **RESTRICT_COD**, and it tells you exactly why. That's a business potentially saving an estimated ₹150–₹250 in logistics losses on one order.
 
 *(Click the 'Edge Case' preset)*
-"Now, look at Scenario three: The Edge Case. This is Order ORD_0005721. The customer has a 100% historical RTO rate. A primitive rule engine would instantly block or restrict this customer. 
-"Stage 1 flags the risk. But look at Stage 2's reasoning: the AI recognizes that the customer only has **one past order** ($n=1$). A 100% rate on a single order is thin statistical evidence. Instead of blocking the sale and angering an honest customer, Guardian nuances the decision to **VERIFY_MANUALLY**, instructing the support desk to make a 30-second confirmation call. That's real, human-level triage."
+"Now — this is the one I actually want you to pay attention to. Order ORD_0005721. This customer has a 100% historical RTO rate. A blunt rule engine bans this person on the spot, no questions asked.
+
+Watch what Guardian does instead. Stage 1 flags it, sure. But Stage 2 catches something the rule can't: this customer has exactly **one** past order. A 100% rate on a sample of one isn't a pattern — it's a coin flip. So instead of blocking a possibly-honest customer, Guardian downgrades this to **VERIFY_MANUALLY** — a 30-second confirmation call instead of a lost sale. That's the difference between a rule and a judgment."
 
 ---
 
-## 3. AI Judgment: Right Tool in the Right Place (2:30 - 3:30)
-*Visual: Switch to the Mermaid Architecture diagram in `ARCHITECTURE.md` or README.*
+## 3. AI Judgment: The Right Tool in the Right Place (2:30 - 3:30)
+*Visual: Switch to the architecture diagram (`ARCHITECTURE.md`).*
 
-"A central architectural decision in Guardian is **where we chose NOT to use an LLM**.
+"One of the decisions I'm proudest of in this build is where we chose *not* to use an LLM.
 
-If you pass 10,000 orders a day through a multi-modal or frontier LLM, your API bills will bankrupt you, and a 2-second p99 latency will break checkout conversion. 
+Run 10,000 orders a day through a frontier model and two things happen: your API bill explodes, and your checkout latency tanks conversion. So we split the work by what each tool is actually good at.
 
-So we applied AI judgment:
-1. **LightGBM does the heavy lifting:** It processes tabular features—frequency encoding, historical return ratios, discount depth—in milliseconds. It filters out the bottom 80% of clean traffic at virtually zero marginal cost.
-2. **The LLM is reserved strictly for the top 20% ambiguous tail:** We only spend LLM compute when multi-variable qualitative reasoning is genuinely required—like balancing small sample sizes, detecting compensating factors like prepaid payment, or explaining decisions to human review teams. Fast tabular ML where speed matters; deep generative reasoning where context matters."
+LightGBM handles the volume — return ratios, discount depth, pincode history — in single-digit milliseconds, filtering the safe majority of traffic at close to zero cost. The LLM only gets called on the ambiguous top slice, where the decision genuinely needs judgment: weighing a thin sample size, noticing that a prepaid payment offsets a past RTO, explaining a decision in plain language a human reviewer can trust. Fast, cheap ML where speed matters. Real reasoning where context matters."
 
 ---
 
-## 4. Failure Recovery: What Broke at 2 AM (3:30 - 4:30)
+## 4. Failure Recovery: What Broke, and What We Learned (3:30 - 4:30)
 *Visual: Highlight the Results & Metrics table in `README.md`.*
 
-"The true measure of an engineering build is what broke and how you recovered. Two major issues broke during this project:
+"The real test of a build isn't whether everything worked — it's what broke, and whether you caught it.
 
-**First: The Unconstrained Optimization Trap.** 
-When we first ran threshold optimization to minimize total business costs, the optimizer outputted a threshold of 0.01—it wanted to flag 99% of all orders. Why? Because the financial penalty of missed fraud (₹150–₹250) mathematically dwarfs a ₹10 review call. Unconstrained math broke operational reality. 
-*How we recovered:* We redesigned the objective into a **capacity-constrained optimization**. We locked the manual review capacity to a realistic 20% of daily volume. At that exact 20% budget, our frozen LightGBM model captures **29.14% of all fraud**, validated via 1,000-resample bootstrap confidence intervals with zero data leakage.
+**First break: the unconstrained optimization trap.** When we first optimized purely for cost, the model told us to flag *99.95% of all orders* — because missing a fraud case costs so much more than one review call, the raw math says review everyone. That's not a working filter, that's Stage 1 doing nothing. So we reframed it: assume your review team can only realistically handle the top 20% of daily volume, and optimize *within* that constraint. At that 20% budget, Guardian catches **29.14% of all fraud** — a real, meaningful lift we confirmed isn't just noise, using a 1,000-resample bootstrap on the model's underlying ranking power.
 
-**Second: The Sample Size Calibration Error.**
-In our early Stage 2 prompt tests, the LLM actually failed that edge case I showed you. It saw '100% RTO' and over-weighted a thin sample of $n=1$, issuing a harsh restriction. 
-*How we recovered:* Instead of hiding the failure, we treated prompt design like an engineering specification. We introduced explicit statistical calibration guidelines in the system prompt—instructing the model to evaluate sample sizes and downgrade confidence when $n < 3$. That fixed the error and produced calibrated, trustworthy triage."
+**Second break: the sample-size blind spot.** Early on, Stage 2 saw '100% RTO rate' on a single order and slammed the door — restricted the customer outright. It wasn't wrong about the fact, it was wrong about the *weight* it gave a sample size of one. So we didn't patch around it — we rewrote the system prompt to explicitly reason about sample size before committing to a hard decision. That's the fix you just watched work in the edge-case demo."
 
 ---
 
 ## 5. Honest Limitations & Next Steps (4:30 - 5:00)
 *Visual: Back to speaking to camera.*
 
-"To be completely honest about limitations: because real Indian e-commerce COD and return datasets are proprietary, our dataset is synthetic—carefully calibrated to published industry benchmarks. While our architecture—FastAPI backend, LightGBM engine, and Streamlit frontend—mirrors how this runs in production, our precision and recall metrics reflect learning those simulated distributions.
+"As I mentioned, this runs on carefully calibrated synthetic data, not a live merchant feed — so today's precision and recall numbers tell you the model learned the patterns I built in, not a guarantee of real-world performance yet. The architecture — FastAPI, LightGBM, Streamlit — is built to mirror production.
 
-The next step is deploying Guardian as a Shopify webhook app, collecting live merchant outcome data, and creating a continuous retraining flywheel. 
+The real next step is plugging into an actual Shopify webhook, collecting real outcomes, and retraining on the real thing instead of my best-informed guess at it.
 
-Thank you."
+Returns don't have to stay silent. Thanks for watching."
